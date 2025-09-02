@@ -3,6 +3,8 @@ import 'package:tasks_flutter/repository/in_memory_task_repository.dart';
 import 'package:tasks_flutter/view_models/task_view_model.dart';
 
 class TaskView extends StatefulWidget {
+  const TaskView({super.key});
+
   @override
   State<TaskView> createState() => _TaskViewState();
 }
@@ -10,6 +12,7 @@ class TaskView extends StatefulWidget {
 class _TaskViewState extends State<TaskView> {
   late final TaskViewModel _taskViewModel;
   final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
   @override
   void initState() {
@@ -22,6 +25,7 @@ class _TaskViewState extends State<TaskView> {
   void dispose() {
     _taskViewModel.dispose();
     _titleController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -62,6 +66,11 @@ class _TaskViewState extends State<TaskView> {
                   subtitle: task.description.isNotEmpty
                       ? Text(task.description)
                       : null,
+                  secondary: IconButton(
+                    tooltip: 'Delete Task',
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _taskViewModel.remove(task.id),
+                  ),
                 ),
               );
             },
@@ -71,20 +80,34 @@ class _TaskViewState extends State<TaskView> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a new task',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (_) => _add(),
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  hintText: 'Add a new task',
+                  border: OutlineInputBorder(),
                 ),
+                onSubmitted: (_) => _add(),
               ),
               const SizedBox(width: 8),
-              ElevatedButton(onPressed: _add, child: const Text('Add')),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  hintText: 'Description (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => _add(),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _add,
+                  child: const Text('Add'),
+                ),
+              ),
             ],
           ),
         ),
@@ -94,8 +117,9 @@ class _TaskViewState extends State<TaskView> {
 
   void _add() {
     final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
     if (title.isNotEmpty) {
-      _taskViewModel.add(title);
+      _taskViewModel.add(title, description: description);
       _titleController.clear();
     }
   }
