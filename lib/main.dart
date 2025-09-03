@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tasks_flutter/views/task_create_view.dart';
 import 'package:tasks_flutter/views/task_view.dart';
 
 void main() async {
@@ -11,6 +12,12 @@ class TaskApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: TaskView());
+    return MaterialApp(
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const TaskView(),
+        '/create': (context) => const TaskCreateFormView(),
+      },
+    );
   }
 }

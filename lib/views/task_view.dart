@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tasks_flutter/repository/in_memory_task_repository.dart';
 import 'package:tasks_flutter/view_models/task_view_model.dart';
+import 'package:tasks_flutter/views/task_create_view.dart';
 
 class TaskView extends StatefulWidget {
   const TaskView({super.key});
@@ -77,42 +78,25 @@ class _TaskViewState extends State<TaskView> {
           );
         },
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: 'Add a new task',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _add(),
-              ),
-              const SizedBox(width: 8),
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  hintText: 'Description (optional)',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _add(),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _add,
-                  child: const Text('Add'),
-                ),
-              ),
-            ],
-          ),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _goToCreate,
+        tooltip: 'Add Task',
+        child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Future<void> _goToCreate() async {
+    final result = await Navigator.of(context).push<TaskCreateResult>(
+      MaterialPageRoute(builder: (_) => const TaskCreateFormView()),
+    );
+
+    if (result != null && result.title.trim().isNotEmpty) {
+      await _taskViewModel.add(
+        result.title.trim(),
+        description: result.description.trim(),
+      );
+    }
   }
 
   void _add() {
