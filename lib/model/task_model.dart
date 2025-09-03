@@ -24,4 +24,20 @@ class TaskModel {
       isCompleted: isCompleted ?? this.isCompleted,
     );
   }
+
+  factory TaskModel.fromMap(Map<String, dynamic> map) => TaskModel(
+    id: map['id'],
+    title: map['title'],
+    description: map['description'],
+    isCompleted: map['isCompleted'] == 1,
+  );
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'isCompleted': isCompleted ? 1 : 0,
+    };
+  }
 }

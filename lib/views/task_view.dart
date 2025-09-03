@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tasks_flutter/repository/in_memory_task_repository.dart';
+import 'package:tasks_flutter/repository/sqlite_task_repository.dart';
 import 'package:tasks_flutter/view_models/task_view_model.dart';
 import 'package:tasks_flutter/views/task_create_view.dart';
 
@@ -18,7 +19,7 @@ class _TaskViewState extends State<TaskView> {
   @override
   void initState() {
     super.initState();
-    _taskViewModel = TaskViewModel(InMemoryTaskRepository());
+    _taskViewModel = TaskViewModel(SqliteTaskRepository());
     _taskViewModel.getTasks();
   }
 
