@@ -1,12 +1,12 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:tasks_flutter/model/task_model.dart';
 import 'package:tasks_flutter/repository/task_repository.dart';
-import 'package:tasks_flutter/service/database_service.dart';
+import 'package:tasks_flutter/service/app_database_service.dart';
 
 class SqliteTaskRepository implements TaskRepository {
   static const _table = 'tasks';
 
-  Future<Database> get _database async => DatabaseService.instance.database;
+  Future<Database> get _database async => AppDatabaseService.instance.database;
 
   @override
   Future<List<TaskModel>> getTasks() async {

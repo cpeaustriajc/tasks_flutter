@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:tasks_flutter/repository/in_memory_task_repository.dart';
+import 'package:tasks_flutter/factory/app_route_factory.dart';
 import 'package:tasks_flutter/repository/sqlite_task_repository.dart';
+import 'package:tasks_flutter/service/app_navigation_service.dart';
 import 'package:tasks_flutter/view_models/task_view_model.dart';
 import 'package:tasks_flutter/views/task_create_view.dart';
 
@@ -88,9 +89,8 @@ class _TaskViewState extends State<TaskView> {
   }
 
   Future<void> _goToCreate() async {
-    final result = await Navigator.of(context).push<TaskCreateResult>(
-      MaterialPageRoute(builder: (_) => const TaskCreateFormView()),
-    );
+    final result = await AppNavigationService.instance
+        .pushNamed<TaskCreateResult>(AppRoutes.create);
 
     if (result != null && result.title.trim().isNotEmpty) {
       await _taskViewModel.add(

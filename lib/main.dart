@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tasks_flutter/views/task_create_view.dart';
-import 'package:tasks_flutter/views/task_view.dart';
+import 'package:tasks_flutter/service/app_navigation_service.dart';
+import 'package:tasks_flutter/factory/app_route_factory.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,11 +13,9 @@ class TaskApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const TaskView(),
-        '/create': (context) => const TaskCreateFormView(),
-      },
+      navigatorKey: AppNavigationService.instance.navigatorKey,
+      onGenerateRoute: AppRouteFactory.onGenerateRoute,
+      initialRoute: AppRoutes.home,
     );
   }
 }
