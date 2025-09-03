@@ -98,13 +98,4 @@ class _TaskViewState extends State<TaskView> {
       );
     }
   }
-
-  void _add() {
-    final title = _titleController.text.trim();
-    final description = _descriptionController.text.trim();
-    if (title.isNotEmpty) {
-      _taskViewModel.add(title, description: description);
-      _titleController.clear();
-    }
-  }
 }
