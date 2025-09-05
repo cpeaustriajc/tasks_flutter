@@ -35,7 +35,9 @@ class AppDatabaseSingleton {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         description TEXT,
-        isCompleted INTEGER NOT NULL
+        isCompleted INTEGER NOT NULL,
+        imagePath TEXT,
+        videoUrl TEXT
       )
     ''');
   }
@@ -50,14 +52,23 @@ class AppDatabaseSingleton {
         ALTER TABLE tasks ADD COLUMN imagePath TEXT
       ''');
     }
+
+    if (oldVersion < 3) {
+      await database.execute('''
+        ALTER TABLE tasks ADD COLUMN videoUrl TEXT
+      ''');
+    }
   }
 
   Future<void> _onOpen(Database db) async {
     // Ensure column exists even if version bump was missed earlier
-    final rows = await db.rawQuery('PRAGMA table_info(tasks)');
-    final hasImagePath = rows.any((r) => r['name'] == 'imagePath');
-    if (!hasImagePath) {
+    final cols = await db.rawQuery('PRAGMA table_info(tasks)');
+    bool has(String name) => cols.any((r) => r['name'] == name);
+    if (!has('imagePath')) {
       await db.execute('ALTER TABLE tasks ADD COLUMN imagePath TEXT');
+    }
+    if (!has('videoUrl')) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN videoUrl TEXT');
     }
   }
 }

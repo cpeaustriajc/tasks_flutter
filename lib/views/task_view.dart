@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:video_player/video_player.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:tasks_flutter/factory/app_route_factory.dart';
@@ -100,6 +102,8 @@ class _TaskViewState extends State<TaskView> {
             itemBuilder: (context, index) {
               final task = _taskViewModel.tasks[index];
               final hasImage = (task.imagePath ?? '').isNotEmpty;
+              final hasVideo = (task.videoUrl ?? '').isNotEmpty;
+
               return Dismissible(
                 key: ValueKey(task.id),
                 background: Container(color: Colors.redAccent),
@@ -115,7 +119,8 @@ class _TaskViewState extends State<TaskView> {
                           : TextDecoration.none,
                     ),
                   ),
-                  subtitle: (task.description.isNotEmpty || hasImage)
+                  subtitle:
+                      (task.description.isNotEmpty || hasImage || hasVideo)
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -133,6 +138,12 @@ class _TaskViewState extends State<TaskView> {
                                   fit: BoxFit.cover,
                                 ),
                               ),
+                            ],
+                            if (hasVideo) ...[
+                              const SizedBox(height: 8),
+                              _isYouTubeUrl(task.videoUrl!)
+                                  ? _TaskYouTubePlayer(url: task.videoUrl!)
+                                  : _TaskVideoPlayer(videoUrl: task.videoUrl!),
                             ],
                           ],
                         )
@@ -167,7 +178,178 @@ class _TaskViewState extends State<TaskView> {
         result.title.trim(),
         description: result.description.trim(),
         imagePath: result.imagePath,
+        videoUrl: result.videoUrl,
       );
     }
   }
+}
+
+class _TaskVideoPlayer extends StatefulWidget {
+  const _TaskVideoPlayer({required this.videoUrl});
+  final String videoUrl;
+
+  @override
+  State<_TaskVideoPlayer> createState() => _TaskVideoPlayerState();
+}
+
+class _TaskVideoPlayerState extends State<_TaskVideoPlayer> {
+  late final VideoPlayerController _controller;
+  bool _ready = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+      ..setLooping(false)
+      ..initialize()
+          .then((_) {
+            if (!mounted) return;
+            setState(() => _ready = true);
+          })
+          .catchError((e) {
+            if (!mounted) return;
+            setState(() => _error = 'Unable to load video');
+          });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return Text(_error!, style: const TextStyle(color: Colors.red));
+    }
+
+    if (!_ready) {
+      return const SizedBox(
+        height: 160,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final aspect = _controller.value.aspectRatio == 0
+        ? 16 / 9
+        : _controller.value.aspectRatio;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AspectRatio(
+          aspectRatio: aspect,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              VideoPlayer(_controller),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _controller.value.isPlaying
+                        ? _controller.pause()
+                        : _controller.play();
+                  });
+                },
+                child: Container(
+                  color: Colors.black26,
+                  child: Icon(
+                    _controller.value.isPlaying
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        VideoProgressIndicator(
+          _controller,
+          allowScrubbing: true,
+          padding: const EdgeInsets.symmetric(vertical: 4),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaskYouTubePlayer extends StatefulWidget {
+  const _TaskYouTubePlayer({required this.url});
+  final String url;
+
+  @override
+  State<_TaskYouTubePlayer> createState() => _TaskYouTubePlayerState();
+}
+
+class _TaskYouTubePlayerState extends State<_TaskYouTubePlayer> {
+  YoutubePlayerController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    final id = _extractYouTubeId(widget.url);
+    if (id != null) {
+      _controller = YoutubePlayerController.fromVideoId(
+        videoId: id,
+        autoPlay: false,
+        params: const YoutubePlayerParams(
+          showFullscreenButton: true,
+          strictRelatedVideos: true,
+          enableJavaScript: true,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _controller;
+    if (c == null) {
+      return const Text(
+        'Invalid YouTube URL',
+        style: TextStyle(color: Colors.red),
+      );
+    }
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: YoutubePlayer(controller: c),
+    );
+  }
+}
+
+bool _isYouTubeUrl(String url) {
+  final u = Uri.tryParse(url);
+  if (u == null || !(u.isScheme('http') || u.isScheme('https'))) return false;
+  final host = u.host.toLowerCase();
+  if (host.contains('youtube.com') || host.contains('youtu.be')) return true;
+  return false;
+}
+
+String? _extractYouTubeId(String url) {
+  final u = Uri.tryParse(url);
+  if (u == null) return null;
+  final host = u.host.toLowerCase();
+  if (host.contains('youtu.be')) {
+    final id = u.pathSegments.isNotEmpty ? u.pathSegments.first : null;
+    return (id != null && id.isNotEmpty) ? id : null;
+  }
+  if (host.contains('youtube.com')) {
+    final id = u.queryParameters['v'];
+    if (id != null && id.isNotEmpty) return id;
+    if (u.pathSegments.length >= 2 &&
+        (u.pathSegments.first == 'shorts' || u.pathSegments.first == 'embed')) {
+      return u.pathSegments[1];
+    }
+  }
+  return null;
 }

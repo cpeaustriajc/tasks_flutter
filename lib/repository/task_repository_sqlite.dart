@@ -50,6 +50,7 @@ class SqliteTaskRepository implements TaskRepository {
     'description': task.description,
     'isCompleted': task.isCompleted ? 1 : 0,
     'imagePath': task.imagePath,
+    'videoUrl': task.videoUrl,
   };
 
   Map<String, Object?> _toUpdateRow(TaskModel task) => {
@@ -57,6 +58,7 @@ class SqliteTaskRepository implements TaskRepository {
     'description': task.description,
     'isCompleted': task.isCompleted ? 1 : 0,
     'imagePath': task.imagePath,
+    'videoUrl': task.videoUrl,
   };
 
   TaskModel _fromRow(Map<String, Object?> row) {

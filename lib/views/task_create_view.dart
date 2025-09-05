@@ -13,6 +13,7 @@ class TaskCreateFormView extends StatefulWidget {
 class _TaskCreateFormViewState extends State<TaskCreateFormView> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _videoUrlController = TextEditingController();
   XFile? _image;
   final _picker = ImagePicker();
 
@@ -20,6 +21,7 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _videoUrlController.dispose();
     super.dispose();
   }
 
@@ -40,6 +42,9 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
         title: title,
         description: description,
         imagePath: _image?.path,
+        videoUrl: _videoUrlController.text.trim().isEmpty
+            ? null
+            : _videoUrlController.text.trim(),
       ),
     );
   }
@@ -68,6 +73,15 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
                 border: OutlineInputBorder(),
               ),
               onSubmitted: (_) => _save(),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _videoUrlController,
+              decoration: const InputDecoration(
+                labelText: 'Video URL (optional)',
+                border: OutlineInputBorder(),
+                hintText: 'https://...mp4 or a streaming URL',
+              ),
             ),
             const SizedBox(height: 12),
             Row(

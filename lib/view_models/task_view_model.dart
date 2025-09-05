@@ -29,11 +29,13 @@ class TaskViewModel extends ChangeNotifier {
     String title, {
     String description = '',
     String? imagePath,
+    String? videoUrl,
   }) async {
     final task = TaskModel(
       title: title,
       description: description,
       imagePath: imagePath,
+      videoUrl: videoUrl,
     );
 
     await _taskRepository.addTask(task);

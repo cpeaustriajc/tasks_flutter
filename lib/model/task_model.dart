@@ -4,6 +4,7 @@ class TaskModel {
   final String description;
   final bool isCompleted;
   final String? imagePath;
+  final String? videoUrl;
 
   TaskModel({
     int? id,
@@ -11,6 +12,7 @@ class TaskModel {
     this.description = '',
     this.isCompleted = false,
     this.imagePath,
+    this.videoUrl,
   }) : id = id ?? DateTime.now().millisecondsSinceEpoch;
 
   TaskModel copyWith({
@@ -19,6 +21,7 @@ class TaskModel {
     String? description,
     bool? isCompleted,
     String? imagePath,
+    String? videoUrl,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -26,6 +29,7 @@ class TaskModel {
       description: description ?? this.description,
       isCompleted: isCompleted ?? this.isCompleted,
       imagePath: imagePath ?? this.imagePath,
+      videoUrl: videoUrl ?? this.videoUrl,
     );
   }
 
@@ -35,6 +39,7 @@ class TaskModel {
     description: map['description'],
     isCompleted: map['isCompleted'] == 1,
     imagePath: map['imagePath'] as String?,
+    videoUrl: map['videoUrl'] as String?,
   );
 
   Map<String, dynamic> toMap() {
@@ -44,6 +49,7 @@ class TaskModel {
       'description': description,
       'isCompleted': isCompleted ? 1 : 0,
       'imagePath': imagePath,
+      'videoUrl': videoUrl,
     };
   }
 }
