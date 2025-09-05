@@ -6,7 +6,8 @@ import 'package:tasks_flutter/singleton/app_database_singleton.dart';
 class SqliteTaskRepository implements TaskRepository {
   static const _table = 'tasks';
 
-  Future<Database> get _database async => AppDatabaseSingleton.instance.database;
+  Future<Database> get _database async =>
+      AppDatabaseSingleton.instance.database;
 
   @override
   Future<List<TaskModel>> getTasks() async {
@@ -48,12 +49,14 @@ class SqliteTaskRepository implements TaskRepository {
     'title': task.title,
     'description': task.description,
     'isCompleted': task.isCompleted ? 1 : 0,
+    'imagePath': task.imagePath,
   };
 
   Map<String, Object?> _toUpdateRow(TaskModel task) => {
     'title': task.title,
     'description': task.description,
     'isCompleted': task.isCompleted ? 1 : 0,
+    'imagePath': task.imagePath,
   };
 
   TaskModel _fromRow(Map<String, Object?> row) {

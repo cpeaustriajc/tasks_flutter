@@ -1,4 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:tasks_flutter/factory/app_route_factory.dart';
+import 'package:tasks_flutter/singleton/app_navigation_singleton.dart';
 import 'package:tasks_flutter/view_models/sign_up_view_model.dart';
 
 class SignUpView extends StatefulWidget {
@@ -19,6 +22,13 @@ class _SignUpViewState extends State<SignUpView> {
   void initState() {
     super.initState();
     _signUpViewModel = SignUpViewModel();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppNavigationSingleton.instance.pushNamed(AppRoutes.home);
+      });
+    }
   }
 
   @override
@@ -89,17 +99,6 @@ class _SignUpViewState extends State<SignUpView> {
                               }
                             },
                             child: const Text('Sign Up'),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                _signUpViewModel.signInWithGoogle(),
-                            label: const Text('Sign Up with Google'),
                           ),
                         ),
                       ),

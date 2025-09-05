@@ -22,6 +22,8 @@ class AppDatabaseSingleton {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+      onOpen: _onOpen,
     );
 
     return _database!;
@@ -36,5 +38,26 @@ class AppDatabaseSingleton {
         isCompleted INTEGER NOT NULL
       )
     ''');
+  }
+
+  Future<void> _onUpgrade(
+    Database database,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await database.execute('''
+        ALTER TABLE tasks ADD COLUMN imagePath TEXT
+      ''');
+    }
+  }
+
+  Future<void> _onOpen(Database db) async {
+    // Ensure column exists even if version bump was missed earlier
+    final rows = await db.rawQuery('PRAGMA table_info(tasks)');
+    final hasImagePath = rows.any((r) => r['name'] == 'imagePath');
+    if (!hasImagePath) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN imagePath TEXT');
+    }
   }
 }

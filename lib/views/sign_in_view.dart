@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:tasks_flutter/factory/app_route_factory.dart';
 import 'package:tasks_flutter/singleton/app_navigation_singleton.dart';
@@ -21,6 +22,13 @@ class _SignInViewState extends State<SignInView> {
   void initState() {
     super.initState();
     _signInViewModel = SignInViewModel();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppNavigationSingleton.instance.pushNamed(AppRoutes.home);
+      });
+    }
   }
 
   @override

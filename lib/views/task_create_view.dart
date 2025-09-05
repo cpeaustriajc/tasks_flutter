@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tasks_flutter/model/task_model.dart';
 
 class TaskCreateFormView extends StatefulWidget {
@@ -10,6 +13,8 @@ class TaskCreateFormView extends StatefulWidget {
 class _TaskCreateFormViewState extends State<TaskCreateFormView> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  XFile? _image;
+  final _picker = ImagePicker();
 
   @override
   void dispose() {
@@ -18,14 +23,25 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
     super.dispose();
   }
 
+  Future<void> _takePhoto() async {
+    final img = await _picker.pickImage(source: ImageSource.camera);
+
+    if (!mounted) return;
+    setState(() => _image = img);
+  }
+
   void _save() {
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
 
     if (title.isEmpty) return;
-    Navigator.of(
-      context,
-    ).pop(TaskModel(title: title, description: description));
+    Navigator.of(context).pop(
+      TaskModel(
+        title: title,
+        description: description,
+        imagePath: _image?.path,
+      ),
+    );
   }
 
   @override
@@ -53,7 +69,25 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
               ),
               onSubmitted: (_) => _save(),
             ),
-            const Spacer(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _takePhoto,
+                  label: const Text('Take Photo'),
+                ),
+                const SizedBox(width: 12),
+                if (_image != null)
+                  Expanded(child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      File(_image!.path),
+                      height: 100,
+                      fit: BoxFit.cover,
+                    )
+                  ))
+              ],
+            ),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
