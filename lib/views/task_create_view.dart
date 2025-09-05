@@ -74,18 +74,34 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
               children: [
                 ElevatedButton.icon(
                   onPressed: _takePhoto,
-                  label: const Text('Take Photo'),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Take photo'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final img = await _picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (!mounted) return;
+                    setState(() => _image = img);
+                  },
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Upload image'),
                 ),
                 const SizedBox(width: 12),
                 if (_image != null)
-                  Expanded(child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      File(_image!.path),
-                      height: 100,
-                      fit: BoxFit.cover,
-                    )
-                  ))
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        // ignore: deprecated_member_use
+                        File(_image!.path),
+                        height: 100,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
               ],
             ),
             SizedBox(
