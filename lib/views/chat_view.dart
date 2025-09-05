@@ -23,10 +23,7 @@ class _ChatViewState extends State<ChatView> {
   @override
   void initState() {
     super.initState();
-    _vm = ChatViewModel(
-      ChatRepositoryRtdb(),
-      PresenceService(),
-    );
+    _vm = ChatViewModel(ChatRepositoryRtdb(), PresenceService());
   }
 
   @override
@@ -116,12 +113,7 @@ class _ChatViewState extends State<ChatView> {
                         children: [
                           const Text('Online:'),
                           ..._vm.onlineList.map(
-                            (p) => Chip(
-                              label: Text(p.name ?? p.uid),
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),
+                            (p) => _OnlineChip(name: p.name ?? p.uid),
                           ),
                         ],
                       ),
@@ -217,6 +209,53 @@ class _ChatViewState extends State<ChatView> {
           },
         );
       },
+    );
+  }
+}
+
+class _OnlineChip extends StatelessWidget {
+  const _OnlineChip({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bg = cs.secondaryContainer;
+    final fg = cs.onSecondaryContainer;
+
+    return Tooltip(
+      message: name,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 180),
+        child: Chip(
+          avatar: const _PresenceDot(color: Colors.green),
+          label: Text(
+            name,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: fg),
+          ),
+          backgroundColor: bg,
+          side: BorderSide(color: cs.outlineVariant),
+          shape: const StadiumBorder(),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+        ),
+      ),
+    );
+  }
+}
+
+class _PresenceDot extends StatelessWidget {
+  const _PresenceDot({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

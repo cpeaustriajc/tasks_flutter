@@ -11,18 +11,37 @@ class TaskViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
 
+  bool _disposed = false;
+
   List<TaskModel> get tasks => List.unmodifiable(_tasks);
   bool get isLoading => _isLoading;
 
+  void _notify() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   Future<void> getTasks() async {
+    if (_disposed) return;
     _isLoading = true;
-    notifyListeners();
-    final fetched = await _taskRepository.getTasks();
-    _tasks
-      ..clear()
-      ..addAll(fetched);
-    _isLoading = false;
-    notifyListeners();
+    _notify();
+
+    try {
+      final fetched = await _taskRepository.getTasks();
+      _tasks
+        ..clear()
+        ..addAll(fetched);
+    } finally {
+      _isLoading = false;
+      _notify();
+    }
   }
 
   Future<void> add(
@@ -40,7 +59,7 @@ class TaskViewModel extends ChangeNotifier {
 
     await _taskRepository.addTask(task);
     _tasks.add(task);
-    notifyListeners();
+    _notify();
   }
 
   Future<void> toggle(int id) async {
@@ -52,13 +71,13 @@ class TaskViewModel extends ChangeNotifier {
 
     if (taskIndex != -1) {
       _tasks[taskIndex] = updatedTask;
-      notifyListeners();
+      _notify();
     }
   }
 
   Future<void> remove(int id) async {
     await _taskRepository.deleteTask(id);
     _tasks.removeWhere((task) => task.id == id);
-    notifyListeners();
+    _notify();
   }
 }
