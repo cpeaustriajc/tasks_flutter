@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-
-class TaskCreateResult {
-  final String title;
-  final String description;
-  TaskCreateResult({required this.title, required this.description});
-}
+import 'package:tasks_flutter/model/task_model.dart';
 
 class TaskCreateFormView extends StatefulWidget {
   const TaskCreateFormView({super.key});
@@ -30,7 +25,7 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
     if (title.isEmpty) return;
     Navigator.of(
       context,
-    ).pop(TaskCreateResult(title: title, description: description));
+    ).pop(TaskModel(title: title, description: description));
   }
 
   @override

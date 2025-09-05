@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-class AppNavigationService {
-  AppNavigationService._();
+class AppNavigationSingleton {
+  AppNavigationSingleton._();
 
-  static final AppNavigationService instance = AppNavigationService._();
+  static final AppNavigationSingleton instance = AppNavigationSingleton._();
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 

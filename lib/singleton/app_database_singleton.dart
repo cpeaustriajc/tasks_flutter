@@ -1,10 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-class AppDatabaseService {
-  AppDatabaseService._();
+class AppDatabaseSingleton {
+  AppDatabaseSingleton._();
 
-  static final AppDatabaseService instance = AppDatabaseService._();
+  static final AppDatabaseSingleton instance = AppDatabaseSingleton._();
 
   static const _databaseName = 'tasks.db';
   static const _databaseVersion = 1;

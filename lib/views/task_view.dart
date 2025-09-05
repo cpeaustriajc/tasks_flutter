@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:tasks_flutter/factory/app_route_factory.dart';
-import 'package:tasks_flutter/repository/sqlite_task_repository.dart';
-import 'package:tasks_flutter/service/app_navigation_service.dart';
+import 'package:tasks_flutter/model/task_model.dart';
+import 'package:tasks_flutter/repository/task_repository_sqlite.dart';
+import 'package:tasks_flutter/singleton/app_navigation_singleton.dart';
 import 'package:tasks_flutter/view_models/task_view_model.dart';
-import 'package:tasks_flutter/views/task_create_view.dart';
 
 class TaskView extends StatefulWidget {
   const TaskView({super.key});
@@ -35,7 +35,17 @@ class _TaskViewState extends State<TaskView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Task Manager')),
+      appBar: AppBar(
+        title: const Text('Task Manager'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign In',
+            icon: const Icon(Icons.login),
+            onPressed: () =>
+                AppNavigationSingleton.instance.pushNamed(AppRoutes.signIn),
+          ),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: _taskViewModel,
         builder: (context, _) {
@@ -89,8 +99,9 @@ class _TaskViewState extends State<TaskView> {
   }
 
   Future<void> _goToCreate() async {
-    final result = await AppNavigationService.instance
-        .pushNamed<TaskCreateResult>(AppRoutes.create);
+    final result = await AppNavigationSingleton.instance.pushNamed<TaskModel>(
+      AppRoutes.create,
+    );
 
     if (result != null && result.title.trim().isNotEmpty) {
       await _taskViewModel.add(
