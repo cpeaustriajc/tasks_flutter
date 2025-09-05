@@ -8,6 +8,7 @@ import 'package:tasks_flutter/model/task_model.dart';
 import 'package:tasks_flutter/repository/task_repository_sqlite.dart';
 import 'package:tasks_flutter/singleton/app_navigation_singleton.dart';
 import 'package:tasks_flutter/view_models/task_view_model.dart';
+import 'package:tasks_flutter/views/chat_view.dart';
 
 enum _AccountMenuAction { signOut }
 
@@ -22,6 +23,13 @@ class _TaskViewState extends State<TaskView> {
   late final TaskViewModel _taskViewModel;
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   void initState() {
@@ -46,8 +54,8 @@ class _TaskViewState extends State<TaskView> {
         actions: [
           StreamBuilder<User?>(
             stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshop) {
-              final user = snapshop.data;
+            builder: (context, snapshot) {
+              final user = snapshot.data;
               if (user == null) {
                 return IconButton(
                   tooltip: 'Sign In',
@@ -87,83 +95,101 @@ class _TaskViewState extends State<TaskView> {
           ),
         ],
       ),
-      body: ListenableBuilder(
-        listenable: _taskViewModel,
-        builder: (context, _) {
-          if (_taskViewModel.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          ListenableBuilder(
+            listenable: _taskViewModel,
+            builder: (context, _) {
+              if (_taskViewModel.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (_taskViewModel.tasks.isEmpty) {
-            return const Center(child: Text('No tasks available.'));
-          }
-          return ListView.builder(
-            itemCount: _taskViewModel.tasks.length,
-            itemBuilder: (context, index) {
-              final task = _taskViewModel.tasks[index];
-              final hasImage = (task.imagePath ?? '').isNotEmpty;
-              final hasVideo = (task.videoUrl ?? '').isNotEmpty;
+              if (_taskViewModel.tasks.isEmpty) {
+                return const Center(child: Text('No tasks available.'));
+              }
+              return ListView.builder(
+                itemCount: _taskViewModel.tasks.length,
+                itemBuilder: (context, index) {
+                  final task = _taskViewModel.tasks[index];
+                  final hasImage = (task.imagePath ?? '').isNotEmpty;
+                  final hasVideo = (task.videoUrl ?? '').isNotEmpty;
 
-              return Dismissible(
-                key: ValueKey(task.id),
-                background: Container(color: Colors.redAccent),
-                onDismissed: (_) => _taskViewModel.remove(task.id),
-                child: CheckboxListTile(
-                  value: task.isCompleted,
-                  onChanged: (_) => _taskViewModel.toggle(task.id),
-                  title: Text(
-                    task.title,
-                    style: TextStyle(
-                      decoration: task.isCompleted
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
+                  return Dismissible(
+                    key: ValueKey(task.id),
+                    background: Container(color: Colors.redAccent),
+                    onDismissed: (_) => _taskViewModel.remove(task.id),
+                    child: CheckboxListTile(
+                      value: task.isCompleted,
+                      onChanged: (_) => _taskViewModel.toggle(task.id),
+                      title: Text(
+                        task.title,
+                        style: TextStyle(
+                          decoration: task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                        ),
+                      ),
+                      subtitle:
+                          (task.description.isNotEmpty || hasImage || hasVideo)
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (task.description.isNotEmpty)
+                                  Text(task.description),
+                                if (hasImage) ...[
+                                  const SizedBox(height: 8),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
+                                      File(task.imagePath!),
+                                      height: 120,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ],
+                                if (hasVideo) ...[
+                                  const SizedBox(height: 8),
+                                  _isYouTubeUrl(task.videoUrl!)
+                                      ? _TaskYouTubePlayer(url: task.videoUrl!)
+                                      : _TaskVideoPlayer(
+                                          videoUrl: task.videoUrl!,
+                                        ),
+                                ],
+                              ],
+                            )
+                          : null,
+                      isThreeLine: hasImage || task.description.isNotEmpty,
+                      secondary: IconButton(
+                        tooltip: 'Delete Task',
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => _taskViewModel.remove(task.id),
+                      ),
                     ),
-                  ),
-                  subtitle:
-                      (task.description.isNotEmpty || hasImage || hasVideo)
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (task.description.isNotEmpty)
-                              Text(task.description),
-                            if (hasImage) ...[
-                              const SizedBox(height: 8),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  File(task.imagePath!),
-                                  height: 120,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ],
-                            if (hasVideo) ...[
-                              const SizedBox(height: 8),
-                              _isYouTubeUrl(task.videoUrl!)
-                                  ? _TaskYouTubePlayer(url: task.videoUrl!)
-                                  : _TaskVideoPlayer(videoUrl: task.videoUrl!),
-                            ],
-                          ],
-                        )
-                      : null,
-                  isThreeLine: hasImage || task.description.isNotEmpty,
-                  secondary: IconButton(
-                    tooltip: 'Delete Task',
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _taskViewModel.remove(task.id),
-                  ),
-                ),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+          ChatView(),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _goToCreate,
-        tooltip: 'Add Task',
-        child: const Icon(Icons.add),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: _goToCreate,
+              tooltip: 'Add Task',
+              child: const Icon(Icons.add),
+            )
+          : null,
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Tasks'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }

@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "286371668278",
+    "firebase_url": "https://tasks-flutter-afe81-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "tasks-flutter-afe81",
     "storage_bucket": "tasks-flutter-afe81.firebasestorage.app"
   },

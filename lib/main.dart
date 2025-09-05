@@ -24,7 +24,31 @@ class TaskApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: AppNavigationSingleton.instance.navigatorKey,
       onGenerateRoute: AppRouteFactory.onGenerateRoute,
-      home: const AuthGate(),
+      home: FutureBuilder<FirebaseApp>(
+        future: Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return const AuthGate();
+          }
+
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text('Error initializing Firebase: ${snapshot.error}'),
+                ),
+              ),
+            );
+          }
+
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        },
+      ),
     );
   }
 }

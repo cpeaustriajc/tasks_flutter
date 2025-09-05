@@ -57,6 +57,7 @@ class DefaultFirebaseOptions {
     appId: '1:286371668278:android:6719ef8fd9767fda295397',
     messagingSenderId: '286371668278',
     projectId: 'tasks-flutter-afe81',
+    databaseURL: 'https://tasks-flutter-afe81-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'tasks-flutter-afe81.firebasestorage.app',
   );
 
