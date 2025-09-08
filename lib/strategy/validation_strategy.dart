@@ -4,17 +4,15 @@ abstract class ValidationStrategy<T, E extends Exception> {
 
 class EmailValidationStrategy
     implements ValidationStrategy<String, EmailValidationException> {
+  static final _emailRegex = RegExp(
+    r"^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+  );
+
   @override
   void validate(String value) {
-    final bool isValid = RegExp(
-      r"^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
-    ).hasMatch(value);
-
-    if (!isValid) {
+    if (!_emailRegex.hasMatch(value)) {
       throw EmailValidationException('Invalid email format');
     }
-
-    return;
   }
 }
 
