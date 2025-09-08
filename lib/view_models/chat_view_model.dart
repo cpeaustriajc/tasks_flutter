@@ -8,10 +8,9 @@ import 'package:tasks_flutter/service/presence_service.dart';
 class ChatViewModel extends ChangeNotifier {
   final ChatRepository _chatRepository;
   final PresenceService _presenceService;
+  final String roomId;
 
-  ChatViewModel(this._chatRepository, this._presenceService);
-
-  final String roomId = 'global';
+  ChatViewModel(this._chatRepository, this._presenceService, {required this.roomId});
 
   List<ChatModel> _messages = [];
   List<PresenceUserModel> _presenceList = [];

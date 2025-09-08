@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:tasks_flutter/factory/app_route_factory.dart';
+import 'package:tasks_flutter/repository/user_repository_firestore.dart';
 import 'package:tasks_flutter/singleton/app_navigation_singleton.dart';
 
 class SignUpViewModel extends ChangeNotifier {
@@ -20,6 +21,20 @@ class SignUpViewModel extends ChangeNotifier {
     try {
       UserCredential result = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
+
+      if (result.user != null) {
+        final repo = UserRepositoryFirestore();
+        await repo.ensureUserProfileExists(
+          uid: result.user!.uid,
+          email: result.user!.email,
+          displayName: result.user!.displayName,
+        );
+        await repo.saveUserProfile(
+          uid: result.user!.uid,
+          email: result.user!.email,
+          displayName: result.user!.displayName,
+        );
+      }
 
       if (result.user != null) {
         _errorMessage = null;

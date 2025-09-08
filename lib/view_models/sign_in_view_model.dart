@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:tasks_flutter/repository/user_repository_firestore.dart';
 
 class SignInViewModel extends ChangeNotifier {
   String? _errorMessage;
@@ -17,10 +18,23 @@ class SignInViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      if (credential.user != null) {
+        final repo = UserRepositoryFirestore();
+        await repo.ensureUserProfileExists(
+          uid: credential.user!.uid,
+          email: credential.user!.email,
+          displayName: credential.user!.displayName,
+        );
+        await repo.saveUserProfile(
+          uid: credential.user!.uid,
+          email: credential.user!.email,
+          displayName: credential.user!.displayName,
+        );
+      }
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
@@ -61,7 +75,20 @@ class SignInViewModel extends ChangeNotifier {
         idToken: googleAuth.idToken,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      if (result.user != null) {
+        final repo = UserRepositoryFirestore();
+        await repo.ensureUserProfileExists(
+          uid: result.user!.uid,
+          email: result.user!.email,
+          displayName: result.user!.displayName,
+        );
+        await repo.saveUserProfile(
+          uid: result.user!.uid,
+          email: result.user!.email,
+          displayName: result.user!.displayName,
+        );
+      }
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-disabled':
