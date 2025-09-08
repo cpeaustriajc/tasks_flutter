@@ -7,6 +7,8 @@ class TaskViewModel extends ChangeNotifier {
   TaskViewModel(this._taskRepository);
 
   final List<TaskModel> _tasks = [];
+  int? _lastFetchedId; // id of last item in descending order
+  bool _hasMore = true;
 
   bool _isLoading = false;
 
@@ -14,6 +16,7 @@ class TaskViewModel extends ChangeNotifier {
 
   List<TaskModel> get tasks => List.unmodifiable(_tasks);
   bool get isLoading => _isLoading;
+  bool get hasMore => _hasMore;
 
   void _notify() {
     if (!_disposed) {
@@ -37,6 +40,35 @@ class TaskViewModel extends ChangeNotifier {
       _tasks
         ..clear()
         ..addAll(fetched);
+      if (_tasks.isNotEmpty) {
+        _lastFetchedId = _tasks.last.id; // because list ordered DESC
+      }
+      _hasMore = _tasks.isNotEmpty; // assume may have more
+    } finally {
+      _isLoading = false;
+      _notify();
+    }
+  }
+
+  Future<List<TaskModel>> loadMore({required String userId, int pageSize = 20}) async {
+    if (!_hasMore || _isLoading) return const [];
+    _isLoading = true;
+    _notify();
+    try {
+      final page = await _taskRepository.getTasksPage(
+        userId: userId,
+        startAfterId: _lastFetchedId,
+        limit: pageSize,
+      );
+      if (page.isEmpty) {
+        _hasMore = false;
+        return const [];
+      } else {
+        _tasks.addAll(page);
+        _lastFetchedId = page.last.id;
+        if (page.length < pageSize) _hasMore = false;
+        return page;
+      }
     } finally {
       _isLoading = false;
       _notify();

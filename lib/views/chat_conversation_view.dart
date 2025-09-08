@@ -100,10 +100,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
         }
 
         final conversationViewModel = _conversationViewModel ??= ChatViewModel(
-          ChatRepositoryRtdb(),
-          PresenceService(),
-          roomId: _roomIdFor(currentUser.uid, _otherUser!.uid),
-        );
+            ChatRepositoryRtdb(),
+            PresenceService(),
+            roomId: _roomIdFor(currentUser.uid, _otherUser!.uid),
+          );
         if (!_conversationInitialized) {
           _conversationInitialized = true;
           conversationViewModel.init(
@@ -147,53 +147,52 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                 children: [
                   Expanded(
                     child: ListView.separated(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(8),
-                      itemCount: messages.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final m = messages[index];
-                        final isMe = m.uid == currentUser.uid;
-                        final bubbleColor = isMe
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : Theme.of(context).colorScheme.surfaceContainerHighest;
-                        final textColor = isMe
-                            ? Theme.of(context).colorScheme.onPrimaryContainer
-                            : Theme.of(context).colorScheme.onSurface;
-                        return Align(
-                          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 320),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: bubbleColor,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (!isMe)
-                                      Text(
-                                        m.name ?? 'User',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(8),
+                        itemCount: messages.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final m = messages[index];
+                          final isMe = m.uid == currentUser.uid;
+                          final bubbleColor = isMe
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : Theme.of(context).colorScheme.surfaceContainerHighest;
+                          final textColor = isMe
+                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                              : Theme.of(context).colorScheme.onSurface;
+                          return Align(
+                            alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: bubbleColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (!isMe)
+                                        Text(
+                                          m.name ?? 'User',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          ),
                                         ),
+                                      Text(
+                                        m.text,
+                                        style: TextStyle(color: textColor),
                                       ),
-                                    Text(
-                                      m.text,
-                                      style: TextStyle(color: textColor),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        }),
                   ),
                   SafeArea(
                     top: false,

@@ -27,6 +27,29 @@ class SqliteTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<List<TaskModel>> getTasksPage({
+    required String userId,
+    int? startAfterId,
+    required int limit,
+  }) async {
+    final database = await _database;
+    final whereBuffer = StringBuffer(' (userId = ? OR userId IS NULL) ');
+    final whereArgs = <Object?>[userId];
+    if (startAfterId != null) {
+      whereBuffer.write(' AND id < ?');
+      whereArgs.add(startAfterId);
+    }
+    final rows = await database.query(
+      _table,
+      where: whereBuffer.toString(),
+      whereArgs: whereArgs,
+      orderBy: 'id DESC',
+      limit: limit,
+    );
+    return rows.map(_fromRow).toList();
+  }
+
+  @override
   Future<void> addTask(TaskModel task) async {
     final database = await _database;
     await database.insert(

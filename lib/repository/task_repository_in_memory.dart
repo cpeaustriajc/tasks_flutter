@@ -12,6 +12,25 @@ class InMemoryTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<List<TaskModel>> getTasksPage({
+    required String userId,
+    int? startAfterId,
+    required int limit,
+  }) async {
+    final filtered = _tasks.where((t) => t.userId == userId).toList()
+      ..sort((a, b) => b.id.compareTo(a.id));
+    List<TaskModel> page;
+    if (startAfterId != null) {
+      final startIndex = filtered.indexWhere((t) => t.id == startAfterId);
+      final sliceStart = startIndex == -1 ? 0 : startIndex + 1;
+      page = filtered.skip(sliceStart).take(limit).toList();
+    } else {
+      page = filtered.take(limit).toList();
+    }
+    return page;
+  }
+
+  @override
   Future<void> addTask(TaskModel task) async {
     _tasks.add(task);
   }

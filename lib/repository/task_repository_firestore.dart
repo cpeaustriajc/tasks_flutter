@@ -18,6 +18,20 @@ class FirestoreTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<List<TaskModel>> getTasksPage({
+    required String userId,
+    int? startAfterId,
+    required int limit,
+  }) async {
+    Query<Map<String, dynamic>> q = _userTasksCol(userId).orderBy('id', descending: true).limit(limit);
+    if (startAfterId != null) {
+      q = q.startAfter([startAfterId]);
+    }
+    final snap = await q.get();
+    return snap.docs.map((d) => TaskModel.fromMap(d.data())).toList();
+  }
+
+  @override
   Future<void> addTask(TaskModel task) async {
     final doc = _userTasksCol(task.userId).doc(task.id.toString());
     await doc.set(task.toMap());
