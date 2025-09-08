@@ -7,37 +7,59 @@ abstract class VideoPlatformParser {
 }
 
 class YouTubeParser implements VideoPlatformParser {
+  static const Set<String> _allowedHosts = {
+    'youtu.be',
+    'youtube.com',
+    'www.youtube.com',
+    'm.youtube.com',
+    'music.youtube.com',
+  };
+
+  final _idPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
+
   @override
   VideoPlatform get platform => VideoPlatform.youtube;
 
   @override
   bool supports(String url) {
     final u = Uri.tryParse(url);
-    if (u == null || !(u.isScheme('http') || u.isScheme('https'))) return false;
-    final host = u.host.toLowerCase();
-    return host.contains('youtube.com') || host.contains('youtu.be');
+
+    if (u == null) return false;
+    if (!(u.isScheme('http') || u.isScheme('https'))) return false;
+    if (!_allowedHosts.contains(u.host.toLowerCase())) return false;
+
+    return true;
   }
 
   @override
   String? extractId(String url) {
     final u = Uri.tryParse(url);
-    if (u == null) return null;
-    final host = u.host.toLowerCase();
-    if (host.contains('youtu.be')) {
-      final id = u.pathSegments.isNotEmpty ? u.pathSegments.first : null;
-      return (id != null && id.isNotEmpty) ? id : null;
-    }
 
-    if (host.contains('youtube.com')) {
-      final id = u.queryParameters['v'];
-      if (id != null && id.isNotEmpty) return id;
-      if (u.pathSegments.length >= 2) {
+    if (u == null) return null;
+    if (!(u.isScheme('http') || u.isScheme('https'))) return null;
+
+    final host = u.host.toLowerCase();
+
+    if (!(_allowedHosts.contains(host))) return null;
+
+    String? candidate;
+
+    if (host == 'youtu.be') {
+      candidate = u.pathSegments.isNotEmpty ? u.pathSegments.first : null;
+    } else {
+      candidate = u.queryParameters['v'];
+      if (candidate == null || candidate.isEmpty) {
         final first = u.pathSegments.first;
-        if (first == 'shorts' || first == 'embed') return u.pathSegments[1];
+        if (first == 'embed' || first == 'shorts') {
+          candidate = u.pathSegments[1];
+        }
       }
     }
 
-    return null;
+    if (candidate == null) return null;
+    candidate = candidate.split('?').first.split('#').first;
+    if (!_idPattern.hasMatch(candidate)) return null;
+    return candidate;
   }
 }
 
