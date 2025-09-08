@@ -292,6 +292,23 @@ class _TaskViewState extends State<TaskView> {
         videoUrl: result.videoUrl,
         userId: userId,
       );
+
+      final state = _pagingController.value;
+      final pages = state.pages ?? [];
+      final newTask = _taskViewModel.tasks.first;
+      List<List<TaskModel>> newPages;
+      if (pages.isEmpty) {
+        newPages = [
+          [newTask],
+        ];
+      } else {
+        final first = [newTask, ...pages.first];
+        newPages = [first, ...pages.skip(1)];
+      }
+      _pagingController.value = state.copyWith(
+        pages: newPages,
+        keys: (state.keys == null || state.keys!.isEmpty) ? [0] : state.keys,
+      );
     }
   }
 }

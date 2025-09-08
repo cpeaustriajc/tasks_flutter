@@ -91,8 +91,15 @@ class TaskViewModel extends ChangeNotifier {
     );
 
     await _taskRepository.addTask(task);
-    _tasks.add(task);
+    _tasks.insert(0, task);
+    _tasks.sort((a, b) => b.id.compareTo(a.id));
+    _lastFetchedId = _tasks.isNotEmpty ? _tasks.last.id : null;
     _notify();
+  }
+
+  void resetPagination() {
+    _lastFetchedId = null;
+    _hasMore = true;
   }
 
   Future<void> toggle(int id) async {
