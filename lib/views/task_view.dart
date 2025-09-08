@@ -50,26 +50,32 @@ class _TaskViewState extends State<TaskView> {
       getNextPageKey: (state) {
         if (!state.hasNextPage) return null;
         final pages = state.pages ?? const [];
-        final currentCount = pages.fold<int>(0, (sum, page) => sum + page.length);
+        if (pages.isNotEmpty) {
+          final lastPageLen = pages.last.length;
+          if (lastPageLen < _pageSize) return null;
+        }
+        final currentCount = pages.fold<int>(
+          0,
+          (sum, page) => sum + page.length,
+        );
         return currentCount;
       },
       fetchPage: (pageKey) async {
-        final user = FirebaseAuth.instance.currentUser ?? await FirebaseAuth.instance.authStateChanges().first;
+        final user =
+            FirebaseAuth.instance.currentUser ??
+            await FirebaseAuth.instance.authStateChanges().first;
         if (user == null) return const <TaskModel>[];
-        final newItems = await _taskViewModel.loadMore(userId: user.uid, pageSize: _pageSize);
-        if (newItems.isEmpty) {
-          // Indicate no more pages.
-          return const <TaskModel>[];
-        }
+        final newItems = await _taskViewModel.loadMore(
+          userId: user.uid,
+          pageSize: _pageSize,
+        );
         return newItems;
       },
     );
-    // Trigger first load.
-    // fetchNextPage will use pageKey = 0
-    WidgetsBinding.instance.addPostFrameCallback((_) => _pagingController.fetchNextPage());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _pagingController.fetchNextPage(),
+    );
   }
-
-  // Legacy placeholder removed (v5 uses pagingController.fetchNextPage directly)
 
   @override
   void dispose() {
@@ -82,172 +88,179 @@ class _TaskViewState extends State<TaskView> {
   @override
   Widget build(BuildContext context) {
     final content = StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, authSnap) {
-          final authUser = authSnap.data;
-          if (authUser != null && !_migrated) {
-            if (!_taskViewModel.isLoading) {
-              final sqliteTasks = _taskViewModel.tasks
-                  .where((t) => t.userId == authUser.uid || t.userId == 'unknown')
-                  .toList();
-              final firestoreRepo = FirestoreTaskRepository();
-              Future(() async {
-                for (final task in sqliteTasks) {
-                  final taskWithOwner = (task.userId == authUser.uid)
-                      ? task
-                      : task.copyWith(userId: authUser.uid);
-                  await firestoreRepo.addTask(taskWithOwner);
-                }
-                if (mounted) {
-                  await _taskViewModel.switchRepository(
-                    firestoreRepo,
-                    userId: authUser.uid,
-                  );
-                  setState(() {
-                    _migrated = true;
-                  });
-                }
-              });
-            }
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnap) {
+        final authUser = authSnap.data;
+        if (authUser != null && !_migrated) {
+          if (!_taskViewModel.isLoading) {
+            final sqliteTasks = _taskViewModel.tasks
+                .where((t) => t.userId == authUser.uid || t.userId == 'unknown')
+                .toList();
+            final firestoreRepo = FirestoreTaskRepository();
+            Future(() async {
+              for (final task in sqliteTasks) {
+                final taskWithOwner = (task.userId == authUser.uid)
+                    ? task
+                    : task.copyWith(userId: authUser.uid);
+                await firestoreRepo.addTask(taskWithOwner);
+              }
+              if (mounted) {
+                await _taskViewModel.switchRepository(
+                  firestoreRepo,
+                  userId: authUser.uid,
+                );
+                setState(() {
+                  _migrated = true;
+                });
+              }
+            });
           }
-          return IndexedStack(
-        index: _selectedIndex,
-        children: [
-          ValueListenableBuilder<PagingState<int, TaskModel>>(
-            valueListenable: _pagingController,
-            builder: (context, state, _) => PagedListView<int, TaskModel>(
-              state: state,
-              fetchNextPage: _pagingController.fetchNextPage,
-              builderDelegate: PagedChildBuilderDelegate<TaskModel>(
-              itemBuilder: (context, task, index) {
-                final hasImage = (task.imagePath ?? '').isNotEmpty;
-                final hasVideo = (task.videoUrl ?? '').isNotEmpty;
-                return Dismissible(
-                  key: ValueKey(task.id),
-                  background: Container(color: Colors.redAccent),
-                  onDismissed: (_) {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user != null) {
-                      _taskViewModel.remove(task.id, userId: user.uid);
-                    }
-                  },
-                  child: CheckboxListTile(
-                    value: task.isCompleted,
-                    onChanged: (_) => _taskViewModel.toggle(task.id),
-                    title: Text(
-                      task.title,
-                      style: TextStyle(
-                        decoration: task.isCompleted
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                      ),
-                    ),
-                    subtitle: (task.description.isNotEmpty || hasImage || hasVideo)
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (task.description.isNotEmpty) Text(task.description),
-                              if (hasImage) ...[
-                                const SizedBox(height: 8),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    File(task.imagePath!),
-                                    height: 120,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ],
-                              if (hasVideo) ...[
-                                const SizedBox(height: 8),
-                                VideoUrlStrategy.instance.isYouTube(task.videoUrl!)
-                                    ? TaskYoutubePlayer(url: task.videoUrl!)
-                                    : TaskVideoPlayer(
-                                        videoUrl: task.videoUrl!,
-                                      ),
-                              ],
-                            ],
-                          )
-                        : null,
-                    isThreeLine: hasImage || task.description.isNotEmpty,
-                    secondary: IconButton(
-                      tooltip: 'Delete Task',
-                      icon: const Icon(Icons.delete),
-                      onPressed: () {
+        }
+        return IndexedStack(
+          index: _selectedIndex,
+          children: [
+            ValueListenableBuilder<PagingState<int, TaskModel>>(
+              valueListenable: _pagingController,
+              builder: (context, state, _) => PagedListView<int, TaskModel>(
+                state: state,
+                fetchNextPage: _pagingController.fetchNextPage,
+                builderDelegate: PagedChildBuilderDelegate<TaskModel>(
+                  itemBuilder: (context, task, index) {
+                    final hasImage = (task.imagePath ?? '').isNotEmpty;
+                    final hasVideo = (task.videoUrl ?? '').isNotEmpty;
+                    return Dismissible(
+                      key: ValueKey(task.id),
+                      background: Container(color: Colors.redAccent),
+                      onDismissed: (_) {
                         final user = FirebaseAuth.instance.currentUser;
                         if (user != null) {
                           _taskViewModel.remove(task.id, userId: user.uid);
                         }
                       },
-                    ),
-                  ),
-                );
-              },
-                firstPageProgressIndicatorBuilder: (_) => const Center(child: CircularProgressIndicator()),
-                noItemsFoundIndicatorBuilder: (_) => const Center(child: Text('No tasks available.')),
+                      child: CheckboxListTile(
+                        value: task.isCompleted,
+                        onChanged: (_) => _taskViewModel.toggle(task.id),
+                        title: Text(
+                          task.title,
+                          style: TextStyle(
+                            decoration: task.isCompleted
+                                ? TextDecoration.lineThrough
+                                : TextDecoration.none,
+                          ),
+                        ),
+                        subtitle:
+                            (task.description.isNotEmpty ||
+                                hasImage ||
+                                hasVideo)
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (task.description.isNotEmpty)
+                                    Text(task.description),
+                                  if (hasImage) ...[
+                                    const SizedBox(height: 8),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(
+                                        File(task.imagePath!),
+                                        height: 120,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ],
+                                  if (hasVideo) ...[
+                                    const SizedBox(height: 8),
+                                    VideoUrlStrategy.instance.isYouTube(
+                                          task.videoUrl!,
+                                        )
+                                        ? TaskYoutubePlayer(url: task.videoUrl!)
+                                        : TaskVideoPlayer(
+                                            videoUrl: task.videoUrl!,
+                                          ),
+                                  ],
+                                ],
+                              )
+                            : null,
+                        isThreeLine: hasImage || task.description.isNotEmpty,
+                        secondary: IconButton(
+                          tooltip: 'Delete Task',
+                          icon: const Icon(Icons.delete),
+                          onPressed: () {
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user != null) {
+                              _taskViewModel.remove(task.id, userId: user.uid);
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  firstPageProgressIndicatorBuilder: (_) =>
+                      const Center(child: CircularProgressIndicator()),
+                  noItemsFoundIndicatorBuilder: (_) =>
+                      const Center(child: Text('No tasks available.')),
+                ),
               ),
             ),
-          ),
-          // Chat tab (people list or conversation)
-          _ChatTab(
-            selectedUser: _selectedChatUser,
-            onUserSelected: (u) => setState(() => _selectedChatUser = u),
-            onBackFromConversation: () =>
-                setState(() => _selectedChatUser = null),
-          ),
-        ],
-          );
-        },
-      );
+            // Chat tab (people list or conversation)
+            _ChatTab(
+              selectedUser: _selectedChatUser,
+              onUserSelected: (u) => setState(() => _selectedChatUser = u),
+              onBackFromConversation: () =>
+                  setState(() => _selectedChatUser = null),
+            ),
+          ],
+        );
+      },
+    );
 
     return AppScaffoldView(
       title: 'Task Manager',
       actions: [
-          StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              final user = snapshot.data;
-              if (user == null) {
-                return IconButton(
-                  tooltip: 'Sign In',
-                  icon: const Icon(Icons.login),
-                  onPressed: () => AppNavigationSingleton.instance.pushNamed(
-                    AppRoutes.signIn,
-                  ),
-                );
-              }
-
-              return PopupMenuButton(
-                tooltip: 'Account',
-                icon: const Icon(Icons.person),
-                onSelected: (action) async {
-                  switch (action) {
-                    case _AccountMenuAction.signOut:
-                      try {
-                        await FirebaseAuth.instance.signOut();
-                      } catch (_) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Error signing out.')),
-                          );
-                        }
-                      }
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: _AccountMenuAction.signOut,
-                    child: Text('Sign Out (${user.email})'),
-                  ),
-                ],
+        StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            final user = snapshot.data;
+            if (user == null) {
+              return IconButton(
+                tooltip: 'Sign In',
+                icon: const Icon(Icons.login),
+                onPressed: () =>
+                    AppNavigationSingleton.instance.pushNamed(AppRoutes.signIn),
               );
-            },
-          ),
-        ],
-  body: content,
+            }
+
+            return PopupMenuButton(
+              tooltip: 'Account',
+              icon: const Icon(Icons.person),
+              onSelected: (action) async {
+                switch (action) {
+                  case _AccountMenuAction.signOut:
+                    try {
+                      await FirebaseAuth.instance.signOut();
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Error signing out.')),
+                        );
+                      }
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: _AccountMenuAction.signOut,
+                  child: Text('Sign Out (${user.email})'),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+      body: content,
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
               onPressed: _goToCreate,

@@ -32,24 +32,25 @@ class _PeopleListViewState extends State<PeopleListView> {
       getNextPageKey: (state) {
         if (!state.hasNextPage) return null;
         final pages = state.pages ?? const [];
+        if (pages.isNotEmpty) {
+          final lastLen = pages.last.length;
+          if (lastLen < _pageSize) return null;
+        }
         final count = pages.fold<int>(0, (s, p) => s + p.length);
-        return count; // next start index
+        return count;
       },
       fetchPage: (pageKey) async {
-        // pageKey is current total loaded count (start index)
-        final currentUser =
-            FirebaseAuth.instance.currentUser ??
+        final currentUser = FirebaseAuth.instance.currentUser ??
             await FirebaseAuth.instance.authStateChanges().first;
         if (currentUser == null) return const <UserModel>[];
-        final people = _peopleViewModel.users
+        final peopleAll = _peopleViewModel.users
             .where((u) => u.uid != currentUser.uid)
             .toList();
-        if (pageKey >= people.length) return const <UserModel>[]; // no more
-        final slice = people.skip(pageKey).take(_pageSize).toList();
+        if (pageKey >= peopleAll.length) return const <UserModel>[]; // no more
+        final slice = peopleAll.skip(pageKey).take(_pageSize).toList();
         return slice;
       },
     );
-    // Kick off first load next frame (wait for potential auth / data streams)
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _pagingController.fetchNextPage(),
     );
@@ -116,12 +117,16 @@ class _PeopleListViewState extends State<PeopleListView> {
               final people = _peopleViewModel.users
                   .where((u) => u.uid != currentUser.uid)
                   .toList();
-              // When underlying people count changes (filter or presence updates), refresh.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                _pagingController.refresh();
-                _pagingController.fetchNextPage();
-              });
+              final pages = _pagingController.value.pages ?? const [];
+              final loadedCount = pages.fold<int>(0, (s, p) => s + p.length);
+              final targetCount = people.length;
+              if (loadedCount == 0 || loadedCount > targetCount) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  _pagingController.refresh();
+                  _pagingController.fetchNextPage();
+                });
+              }
               return Column(
                 children: [
                   Padding(
