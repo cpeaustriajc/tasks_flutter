@@ -1,9 +1,22 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:tasks_flutter/repository/user_repository.dart';
 import 'package:tasks_flutter/repository/user_repository_firestore.dart';
 
 class SignInViewModel extends ChangeNotifier {
+  SignInViewModel({
+    FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+    UserRepository? userRepository,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
+        _userRepository = userRepository ?? UserRepositoryFirestore();
+
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
+  final UserRepository _userRepository;
+
   String? _errorMessage;
   bool _isLoading = false;
 
@@ -18,18 +31,17 @@ class SignInViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       if (credential.user != null) {
-        final repo = UserRepositoryFirestore();
-        await repo.ensureUserProfileExists(
+        await _userRepository.ensureUserProfileExists(
           uid: credential.user!.uid,
           email: credential.user!.email,
           displayName: credential.user!.displayName,
         );
-        await repo.saveUserProfile(
+        await _userRepository.saveUserProfile(
           uid: credential.user!.uid,
           email: credential.user!.email,
           displayName: credential.user!.displayName,
@@ -63,27 +75,24 @@ class SignInViewModel extends ChangeNotifier {
   Future<void> signInWithGoogle() async {
     _isLoading = true;
     notifyListeners();
-    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-    await googleSignIn.initialize();
+    await _googleSignIn.initialize();
 
     try {
-      final GoogleSignInAccount googleUser = await googleSignIn.authenticate();
-
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
 
-      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      final result = await _auth.signInWithCredential(credential);
       if (result.user != null) {
-        final repo = UserRepositoryFirestore();
-        await repo.ensureUserProfileExists(
+        await _userRepository.ensureUserProfileExists(
           uid: result.user!.uid,
           email: result.user!.email,
           displayName: result.user!.displayName,
         );
-        await repo.saveUserProfile(
+        await _userRepository.saveUserProfile(
           uid: result.user!.uid,
           email: result.user!.email,
           displayName: result.user!.displayName,

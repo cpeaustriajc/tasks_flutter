@@ -1,10 +1,23 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:tasks_flutter/factory/app_route_factory.dart';
+import 'package:tasks_flutter/repository/user_repository.dart';
 import 'package:tasks_flutter/repository/user_repository_firestore.dart';
-import 'package:tasks_flutter/singleton/app_navigation_singleton.dart';
 
 class SignUpViewModel extends ChangeNotifier {
+  SignUpViewModel({
+    FirebaseAuth? auth,
+    UserRepository? userRepository,
+    this.navigateOnSuccess = true,
+    void Function()? onSuccessNavigate,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _userRepository = userRepository ?? UserRepositoryFirestore(),
+        _onSuccessNavigate = onSuccessNavigate;
+
+  final FirebaseAuth _auth;
+  final UserRepository _userRepository;
+  final bool navigateOnSuccess;
+  final void Function()? _onSuccessNavigate; // for UI layer injection
+
   String? _errorMessage;
   bool _isLoading = false;
 
@@ -19,17 +32,18 @@ class SignUpViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      UserCredential result = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
+      final result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       if (result.user != null) {
-        final repo = UserRepositoryFirestore();
-        await repo.ensureUserProfileExists(
+        await _userRepository.ensureUserProfileExists(
           uid: result.user!.uid,
           email: result.user!.email,
           displayName: result.user!.displayName,
         );
-        await repo.saveUserProfile(
+        await _userRepository.saveUserProfile(
           uid: result.user!.uid,
           email: result.user!.email,
           displayName: result.user!.displayName,
@@ -38,10 +52,10 @@ class SignUpViewModel extends ChangeNotifier {
 
       if (result.user != null) {
         _errorMessage = null;
-        AppNavigationSingleton.instance.pushNamedAndRemoveUntil(
-          AppRoutes.home,
-          (route) => false,
-        );
+        // Actual navigation is delegated to UI via callback for testability.
+        if (navigateOnSuccess) {
+          _onSuccessNavigate?.call();
+        }
       }
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
