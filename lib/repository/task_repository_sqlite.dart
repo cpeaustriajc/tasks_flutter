@@ -10,9 +10,18 @@ class SqliteTaskRepository implements TaskRepository {
       AppDatabaseSingleton.instance.database;
 
   @override
-  Future<List<TaskModel>> getTasks() async {
+  Future<List<TaskModel>> getTasks({required String userId}) async {
     final database = await _database;
-    final rows = await database.query(_table, orderBy: 'id DESC');
+    try {
+      await database.execute('ALTER TABLE $_table ADD COLUMN userId TEXT');
+    } catch (_) {}
+
+    final rows = await database.query(
+      _table,
+      where: 'userId = ? OR userId IS NULL',
+      whereArgs: [userId],
+      orderBy: 'id DESC',
+    );
 
     return rows.map(_fromRow).toList();
   }
@@ -39,7 +48,7 @@ class SqliteTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<void> deleteTask(int id) async {
+  Future<void> deleteTask(int id, {String? userId}) async {
     final database = await _database;
     await database.delete(_table, where: 'id =  ?', whereArgs: [id]);
   }
@@ -51,6 +60,7 @@ class SqliteTaskRepository implements TaskRepository {
     'isCompleted': task.isCompleted ? 1 : 0,
     'imagePath': task.imagePath,
     'videoUrl': task.videoUrl,
+    'userId': task.userId,
   };
 
   Map<String, Object?> _toUpdateRow(TaskModel task) => {
@@ -59,6 +69,7 @@ class SqliteTaskRepository implements TaskRepository {
     'isCompleted': task.isCompleted ? 1 : 0,
     'imagePath': task.imagePath,
     'videoUrl': task.videoUrl,
+    'userId': task.userId,
   };
 
   TaskModel _fromRow(Map<String, Object?> row) {

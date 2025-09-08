@@ -5,7 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:tasks_flutter/model/task_model.dart';
 
 class TaskCreateFormView extends StatefulWidget {
-  const TaskCreateFormView({super.key});
+  final String? userId; // provided by parent so we can set ownership early
+  const TaskCreateFormView({super.key, this.userId});
   @override
   State<TaskCreateFormView> createState() => _TaskCreateFormViewState();
 }
@@ -37,16 +38,14 @@ class _TaskCreateFormViewState extends State<TaskCreateFormView> {
     final description = _descriptionController.text.trim();
 
     if (title.isEmpty) return;
-    Navigator.of(context).pop(
-      TaskModel(
-        title: title,
-        description: description,
-        imagePath: _image?.path,
-        videoUrl: _videoUrlController.text.trim().isEmpty
-            ? null
-            : _videoUrlController.text.trim(),
-      ),
-    );
+    final videoUrl = _videoUrlController.text.trim();
+    Navigator.of(context).pop(TaskModel(
+      title: title,
+      description: description,
+      imagePath: _image?.path,
+      videoUrl: videoUrl.isEmpty ? null : videoUrl,
+      userId: widget.userId ?? 'anonymous',
+    ));
   }
 
   @override

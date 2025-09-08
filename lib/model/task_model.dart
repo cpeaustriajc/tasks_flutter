@@ -5,10 +5,12 @@ class TaskModel {
   final bool isCompleted;
   final String? imagePath;
   final String? videoUrl;
+  final String userId; // owner UID
 
   TaskModel({
     int? id,
     required this.title,
+    required this.userId,
     this.description = '',
     this.isCompleted = false,
     this.imagePath,
@@ -22,6 +24,7 @@ class TaskModel {
     bool? isCompleted,
     String? imagePath,
     String? videoUrl,
+    String? userId,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -30,6 +33,7 @@ class TaskModel {
       isCompleted: isCompleted ?? this.isCompleted,
       imagePath: imagePath ?? this.imagePath,
       videoUrl: videoUrl ?? this.videoUrl,
+      userId: userId ?? this.userId,
     );
   }
 
@@ -40,6 +44,7 @@ class TaskModel {
     isCompleted: map['isCompleted'] == 1,
     imagePath: map['imagePath'] as String?,
     videoUrl: map['videoUrl'] as String?,
+    userId: map['userId'] ?? 'unknown',
   );
 
   Map<String, dynamic> toMap() {
@@ -50,6 +55,7 @@ class TaskModel {
       'isCompleted': isCompleted ? 1 : 0,
       'imagePath': imagePath,
       'videoUrl': videoUrl,
+      'userId': userId,
     };
   }
 }

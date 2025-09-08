@@ -2,12 +2,15 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:tasks_flutter/factory/app_route_factory.dart';
+import 'package:tasks_flutter/views/people_list_view.dart';
+import 'package:tasks_flutter/views/chat_conversation_view.dart';
+import 'package:tasks_flutter/model/user_model.dart';
 import 'package:tasks_flutter/model/task_model.dart';
 import 'package:tasks_flutter/repository/task_repository_sqlite.dart';
+import 'package:tasks_flutter/repository/task_repository_firestore.dart';
 import 'package:tasks_flutter/singleton/app_navigation_singleton.dart';
 import 'package:tasks_flutter/strategy/video_url_strategy.dart';
 import 'package:tasks_flutter/view_models/task_view_model.dart';
-import 'package:tasks_flutter/views/chat_view.dart';
 import 'package:tasks_flutter/views/widgets/task_video_player.dart';
 import 'package:tasks_flutter/views/widgets/task_youtube_player.dart';
 
@@ -25,6 +28,7 @@ class _TaskViewState extends State<TaskView> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   int _selectedIndex = 0;
+  UserModel? _selectedChatUser;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -32,11 +36,20 @@ class _TaskViewState extends State<TaskView> {
     });
   }
 
+  bool _migrated = false;
+
   @override
   void initState() {
     super.initState();
     _taskViewModel = TaskViewModel(SqliteTaskRepository());
-    _taskViewModel.getTasks();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      _taskViewModel.getTasks(userId: currentUser.uid);
+    } else {
+      FirebaseAuth.instance.authStateChanges().first.then((u) {
+        if (u != null) _taskViewModel.getTasks(userId: u.uid);
+      });
+    }
   }
 
   @override
@@ -96,7 +109,36 @@ class _TaskViewState extends State<TaskView> {
           ),
         ],
       ),
-      body: IndexedStack(
+      body: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, authSnap) {
+          final authUser = authSnap.data;
+          if (authUser != null && !_migrated) {
+            if (!_taskViewModel.isLoading) {
+              final sqliteTasks = _taskViewModel.tasks
+                  .where((t) => t.userId == authUser.uid || t.userId == 'unknown')
+                  .toList();
+              final firestoreRepo = FirestoreTaskRepository();
+              Future(() async {
+                for (final task in sqliteTasks) {
+                  final taskWithOwner = (task.userId == authUser.uid)
+                      ? task
+                      : task.copyWith(userId: authUser.uid);
+                  await firestoreRepo.addTask(taskWithOwner);
+                }
+                if (mounted) {
+                  await _taskViewModel.switchRepository(
+                    firestoreRepo,
+                    userId: authUser.uid,
+                  );
+                  setState(() {
+                    _migrated = true;
+                  });
+                }
+              });
+            }
+          }
+          return IndexedStack(
         index: _selectedIndex,
         children: [
           ListenableBuilder(
@@ -105,7 +147,6 @@ class _TaskViewState extends State<TaskView> {
               if (_taskViewModel.isLoading) {
                 return const Center(child: CircularProgressIndicator());
               }
-
               if (_taskViewModel.tasks.isEmpty) {
                 return const Center(child: Text('No tasks available.'));
               }
@@ -115,11 +156,15 @@ class _TaskViewState extends State<TaskView> {
                   final task = _taskViewModel.tasks[index];
                   final hasImage = (task.imagePath ?? '').isNotEmpty;
                   final hasVideo = (task.videoUrl ?? '').isNotEmpty;
-
                   return Dismissible(
                     key: ValueKey(task.id),
                     background: Container(color: Colors.redAccent),
-                    onDismissed: (_) => _taskViewModel.remove(task.id),
+                    onDismissed: (_) {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        _taskViewModel.remove(task.id, userId: user.uid);
+                      }
+                    },
                     child: CheckboxListTile(
                       value: task.isCompleted,
                       onChanged: (_) => _taskViewModel.toggle(task.id),
@@ -168,7 +213,12 @@ class _TaskViewState extends State<TaskView> {
                       secondary: IconButton(
                         tooltip: 'Delete Task',
                         icon: const Icon(Icons.delete),
-                        onPressed: () => _taskViewModel.remove(task.id),
+                        onPressed: () {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            _taskViewModel.remove(task.id, userId: user.uid);
+                          }
+                        },
                       ),
                     ),
                   );
@@ -176,8 +226,16 @@ class _TaskViewState extends State<TaskView> {
               );
             },
           ),
-          ChatView(),
+          // Chat tab (people list or conversation)
+          _ChatTab(
+            selectedUser: _selectedChatUser,
+            onUserSelected: (u) => setState(() => _selectedChatUser = u),
+            onBackFromConversation: () =>
+                setState(() => _selectedChatUser = null),
+          ),
         ],
+          );
+        },
       ),
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
@@ -203,12 +261,38 @@ class _TaskViewState extends State<TaskView> {
             as TaskModel?;
 
     if (result != null && result.title.trim().isNotEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      final userId = user?.uid ?? 'unknown';
       await _taskViewModel.add(
         result.title.trim(),
         description: result.description.trim(),
         imagePath: result.imagePath,
         videoUrl: result.videoUrl,
+        userId: userId,
       );
     }
+  }
+}
+
+class _ChatTab extends StatelessWidget {
+  final UserModel? selectedUser;
+  final ValueChanged<UserModel> onUserSelected;
+  final VoidCallback onBackFromConversation;
+  const _ChatTab({
+    required this.selectedUser,
+    required this.onUserSelected,
+    required this.onBackFromConversation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (selectedUser != null) {
+      return ChatConversationView(
+        initialUser: selectedUser,
+        onBack: onBackFromConversation,
+      );
+    }
+    // Reuse full-screen people list inside tab (without extra route push)
+    return PeopleListView();
   }
 }

@@ -5,8 +5,10 @@ class InMemoryTaskRepository implements TaskRepository {
   final List<TaskModel> _tasks = [];
 
   @override
-  Future<List<TaskModel>> getTasks() async {
-    return List.unmodifiable(_tasks);
+  Future<List<TaskModel>> getTasks({required String userId}) async {
+    return List.unmodifiable(
+      _tasks.where((t) => t.userId == userId),
+    );
   }
 
   @override
@@ -23,7 +25,7 @@ class InMemoryTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<void> deleteTask(int id) async {
+  Future<void> deleteTask(int id, {String? userId}) async {
     _tasks.removeWhere((t) => t.id == id);
   }
 }

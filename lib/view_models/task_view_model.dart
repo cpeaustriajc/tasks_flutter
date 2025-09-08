@@ -3,8 +3,7 @@ import 'package:tasks_flutter/model/task_model.dart';
 import 'package:tasks_flutter/repository/task_repository.dart';
 
 class TaskViewModel extends ChangeNotifier {
-  final TaskRepository _taskRepository;
-
+  TaskRepository _taskRepository;
   TaskViewModel(this._taskRepository);
 
   final List<TaskModel> _tasks = [];
@@ -28,13 +27,13 @@ class TaskViewModel extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> getTasks() async {
+  Future<void> getTasks({required String userId}) async {
     if (_disposed) return;
     _isLoading = true;
     _notify();
 
     try {
-      final fetched = await _taskRepository.getTasks();
+      final fetched = await _taskRepository.getTasks(userId: userId);
       _tasks
         ..clear()
         ..addAll(fetched);
@@ -49,12 +48,14 @@ class TaskViewModel extends ChangeNotifier {
     String description = '',
     String? imagePath,
     String? videoUrl,
+    required String userId,
   }) async {
     final task = TaskModel(
       title: title,
       description: description,
       imagePath: imagePath,
       videoUrl: videoUrl,
+      userId: userId,
     );
 
     await _taskRepository.addTask(task);
@@ -75,9 +76,14 @@ class TaskViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> remove(int id) async {
-    await _taskRepository.deleteTask(id);
+  Future<void> remove(int id, {required String userId}) async {
+    await _taskRepository.deleteTask(id, userId: userId);
     _tasks.removeWhere((task) => task.id == id);
     _notify();
+  }
+
+  Future<void> switchRepository(TaskRepository repository, {required String userId}) async {
+    _taskRepository = repository;
+    await getTasks(userId: userId);
   }
 }
