@@ -85,6 +85,31 @@ class _TaskViewState extends State<TaskView> {
     super.dispose();
   }
 
+  Future<void> _deleteTask(TaskModel task) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await _taskViewModel.remove(task.id, userId: user.uid);
+    _removeFromPaging(task.id);
+  }
+
+  void _removeFromPaging(int id) {
+    final state = _pagingController.value;
+    final pages = state.pages ?? const <List<TaskModel>>[];
+    if (pages.isEmpty) return;
+    bool removed = false;
+    final newPages = <List<TaskModel>>[];
+    for (final page in pages) {
+      final filtered = page.where((t) => t.id != id).toList();
+      if (filtered.length != page.length) removed = true;
+      newPages.add(filtered);
+    }
+    if (!removed) return;
+    _pagingController.value = state.copyWith(
+      pages: newPages,
+      keys: state.keys,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = StreamBuilder<User?>(
@@ -131,12 +156,7 @@ class _TaskViewState extends State<TaskView> {
                     return Dismissible(
                       key: ValueKey(task.id),
                       background: Container(color: Colors.redAccent),
-                      onDismissed: (_) {
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user != null) {
-                          _taskViewModel.remove(task.id, userId: user.uid);
-                        }
-                      },
+                      onDismissed: (_) => _deleteTask(task),
                       child: CheckboxListTile(
                         value: task.isCompleted,
                         onChanged: (_) => _taskViewModel.toggle(task.id),
@@ -187,12 +207,7 @@ class _TaskViewState extends State<TaskView> {
                         secondary: IconButton(
                           tooltip: 'Delete Task',
                           icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              _taskViewModel.remove(task.id, userId: user.uid);
-                            }
-                          },
+                          onPressed: () => _deleteTask(task),
                         ),
                       ),
                     );
